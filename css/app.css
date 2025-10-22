@@ -1,0 +1,51 @@
+* {
+    font-family: "Press Start 2P", Arial, Helvetica, sans-serif, system-ui;
+    text-align: center;
+
+    margin: auto;
+}
+
+
+h1{
+    font-size: xxx-large;
+    margin-top: 50px;
+}
+
+.board-container{
+    border: 6px solid rgb(29, 29, 29);
+    margin-top: 100px;
+}
+
+table{
+    border-spacing: 0;
+}
+
+.cell {
+    border: 3px solid rgb(70, 70, 70);
+    width: 40px;
+    height: 40px;
+    background-color:rgb(170, 170, 170) ;
+    border-bottom: 4px solid rgb(180, 180, 180);
+    border-right: 4px solid rgb(180, 180, 180);
+    transition: 0.2s;
+}
+
+.cell:hover{
+    background-color:rgb(90, 90, 90);
+    border-bottom: 4px solid rgb(150, 150, 150);
+    border-right: 4px solid rgb(150, 150, 150);
+}
+
+.start-btn{
+    margin: 35px;
+    width: 150px;
+    height: 40px;
+    border: 3px solid  black;
+    border-radius: 10px;
+    font-size: large;
+    transition: 0.2s;
+}
+
+.start-btn:hover{
+    background-color: rgb(90, 90, 90);
+}
