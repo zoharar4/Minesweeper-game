@@ -101,7 +101,7 @@ function onCellClicked(elCell, i, j) {
     var currCell = gBoard[i][j]
     if (currCell.isRevealed === true) { console.log('already revealed:', i, j); return }
     if (gGame.canClick === false) return
-    if (isMarked) return
+    if (currCell.isMarked) return
 
     if (currCell.isMine === true) {                        //is mine
         elCell.innerText = MINE
