@@ -1,11 +1,20 @@
 var gBoard
 var minesLocation
+var timerInterval
+var revealedArea = [] // for the function  revealeArea 
+
+
+var time = 0
+
+var elCurrentTime = document.querySelector('.timer span')
+const elMarkedCells = document.querySelector('.marked-cells span')
 // var minesCount = 0
 const MINE = '💣'
 const EMPTY = ''
 const MARKED = '🚩'
 const HEARTIMG = "img/heart3.png"
 var clickSound = new Audio('sounds/click.mp3')
+var explosionSound = new Audio('sounds/explosion.mp3')
 
 const LEVELS = {
     easy: { boardLength: 4, minesCount: 2, lives: 1 },
@@ -16,39 +25,60 @@ const LEVELS = {
 var currLevel = LEVELS.easy
 
 var gGame = {
+    frsClicked: false,
     isOn: true,
-    canClick: true,
-    secsPassed: 0,
+    // secsPassed: 0,
     markedCount: 0,
-    lives: currLevel.lives
+    lives: currLevel.lives,
 
 }
-
-
+//reset value //  start timer
+// 1.2.onInit -> 3.firstClicked 
+//    ^
+//    |
+// 2.3.resetBtn   <--reset first clicked value
 //----------------------------------------------------
 
 function onInit() { //1
-    gBoard = createBoard(currLevel.boardLength) //creates the board with no mines
-    rndmMines()
-    setMinesNegsCount(minesLocation, gBoard)    //updates the minesAroundCount of the cells
-    renderBoard(gBoard)
-    gGame.isOn = true
-    console.log('gBoard:', gBoard)
-    renderBoard(gBoard)
+    // clearInterval(timerInterval)
+    time = 0
+    elCurrentTime.textContent = "00:00:00"
+    gGame.markedCount = 0
+    elMarkedCells.innerText = 0
     gGame.lives = currLevel.lives
+    gBoard = createBoard(currLevel.boardLength) //creates the board with no mines
+    // timerInterval = setInterval(getTime, 10)
+    // rndmMines()
+    // setMinesNegsCount(minesLocation, gBoard)    //updates the minesAroundCount of the cells
+    renderBoard(gBoard)
     renderMinesLives()
+    gGame.isOn = true
 }
 
 function resetBtnClicked(elBtn) { //lets the player click the board
+    gGame.frsClicked = false
     clickSound.play()
+    clearInterval(timerInterval)
     onInit()
 }
 
-function firstClick(i, j) {
-
-
-
+function firstClicked(i, j) {
+    rndmMines(i, j)
+    setMinesNegsCount(minesLocation, gBoard)    //updates the minesAroundCount of the cells
+    timerInterval = setInterval(getTime, 10)
+    console.log('gBoard:', gBoard)
 }
+
+function getTime() { // סופר זמן ב0.01 שניות
+
+    time++
+    var min = Math.trunc(time / 6000)
+    var sec = Math.trunc((time / 100) % 60)
+    var decSec = Math.trunc(time % 100)
+
+    elCurrentTime.textContent = String(min).padStart(2, 0) + ":" + String(sec).padStart(2, 0) + ":" + String(decSec).padStart(2, 0)
+}
+
 
 function changeLevel(difficultyStr) {
     console.log('difficultyStr:', difficultyStr)
@@ -58,7 +88,7 @@ function changeLevel(difficultyStr) {
             gGame.lives = LEVELS[key].lives
 
             console.log('gGame.lives:', gGame.lives)
-            onInit()
+            resetBtnClicked()
             return
         }
     }
@@ -84,17 +114,15 @@ function createBoard(matLength) { //creates matrix of objects and two mines in s
 }
 
 
-function rndmMines() { 
-    const minesCount = currLevel.minesCount 
-    minesLocation = []
+function rndmMines(clickeI, clickedJ) {
+    const minesCount = currLevel.minesCount
+    minesLocation = []      // used to update the cells innerText to a num
     var canSpawn = []
-
 
     for (var i = 0; i < gBoard.length; i++) {           //gets all the locations of the board and put it inside an array
         for (var j = 0; j < gBoard[i].length; j++) {
-            // if (i !== iIdx && j !== jIdx) {
+            if (clickeI === i && clickedJ === j) continue
             canSpawn.push({ i, j })
-            // }
         }
     }
 
@@ -129,6 +157,7 @@ function setMinesNegsCount(minesLocation, board) { //gets the i and j of the min
             }
         }
     }
+    addNumsClasses()
 }
 
 
@@ -138,15 +167,24 @@ function renderBoard(board) { //puts the html code into the html file and update
     for (var i = 0; i < board.length; i++) {
         strHTML += '<tr>'
         for (var j = 0; j < board[i].length; j++) {
-            var minesAroundCurrCell = gBoard[i][j].minesAroundCount
-
-            strHTML += `<td onclick="onCellClicked(this,${i},${j})" oncontextmenu="onCellMarked(this,${i},${j}); return false"  class="cell cell-${i}-${j} num${minesAroundCurrCell}"></td>`
+            strHTML += `<td onclick="onCellClicked(this,${i},${j})" oncontextmenu="onCellMarked(this,${i},${j}); return false"  class="cell cell-${i}-${j} "></td>`
 
         }
         strHTML += '</tr>'
     }
     const elContainer = document.querySelector('.board')
     elContainer.innerHTML = strHTML
+}
+
+function addNumsClasses() {
+    for (var i = 0; i < gBoard.length; i++) {
+        for (var j = 0; j < gBoard[i].length; j++) {
+            const minesAround = gBoard[i][j].minesAroundCount
+            const elCurrCell = document.querySelector(`.cell-${i}-${j}`)
+
+            elCurrCell.classList.add(`num${minesAround}`)
+        }
+    }
 }
 
 
@@ -158,10 +196,18 @@ function onCellClicked(elCell, i, j) {
     if (gGame.isOn === false) return
     if (currCell.isMarked) return
     //--------
+    if (gGame.frsClicked === false) {  //first click
+        gGame.frsClicked = true
+        firstClicked(i, j)
+        if (currCell.minesAroundCount === 0) {
+            revealeArea(elCell, i, j)
+        }
+    }
+
     if (currCell.isMine === true) {                        //is a mine
         elCell.innerText = MINE
         addClass(elCell, 'mine')
-        clickedMine()
+        clickedMine(elCell, i, j)
     } else {                                                // not a mine
         if (currCell.minesAroundCount !== 0) {
             elCell.innerText = currCell.minesAroundCount
@@ -170,57 +216,94 @@ function onCellClicked(elCell, i, j) {
         clickSound.play()
     }
     currCell.isRevealed = true
+    if (gGame.markedCount === currLevel.minesCount) {
+        checkVictory()
+    }
 }
 
 function onCellMarked(elCell, i, j) { // Smark/unmark
+
     if (!gGame.isOn) return
     if (gBoard[i][j].isRevealed) return
+
     if (elCell.innerText === MARKED) {
         gBoard[i][j].isMarked = false
         elCell.innerText = EMPTY
+        gGame.markedCount--
     } else {
         gBoard[i][j].isMarked = true
         elCell.innerText = MARKED
+        gGame.markedCount++
+    }
+    elMarkedCells.innerText = gGame.markedCount
+    if (gGame.markedCount === currLevel.minesCount) {
+        checkVictory()
     }
 }
 
 
-function clickedMine() {   //TODO later checks if the player left lives. if false, calls  checkGameOver(win)
-        gGame.lives -= 1
-        renderMinesLives()
+function clickedMine(elCell, i, j) {   //TODO later checks if the player left lives. if false, calls  checkGameOver(win)
+
+    gGame.lives -= 1
+    explosionSound.play()
+    renderMinesLives()
     if (gGame.lives === 0) {
         onLoss()
-        var startBtn = document.querySelector('.reset-btn')
-        startBtn.style.visibility = 'visible'
         gGame.isOn = false
     } else {
-        
-        // renderMinesLives
+        gBoard[i][j].isMarked = true
+        gGame.markedCount++
+        elCell.innerText = MARKED
+        elMarkedCells.innerText = gGame.markedCount
     }
-
-
 }
 
-function renderMinesLives() {
-    var elMines = document.querySelector('.mines span')
-    elMines.innerText = currLevel.minesCount
-    
-    var elLivesContainer = document.querySelector('.lives-container')
-    elLivesContainer.innerHTML = ''
-    for (var i = 0; i < gGame.lives; i++) {
-        const img = document.createElement('img')
-        img.src = HEARTIMG
-        elLivesContainer.appendChild(img)
-    }
+function revealeArea(elCell, iIdx, jIdx) {
+    // revealedArea = []
+    for (var i = iIdx - 1; i <= iIdx + 1; i++) {
+        for (var j = jIdx - 1; j <= jIdx + 1; j++) {
+            const elCurrCell = document.querySelector(`.cell-${i}-${j}`)
+            if (i === iIdx && j === jIdx) continue
+            if (i < 0 || i > currLevel.boardLength - 1 || j < 0 || j > currLevel.boardLength - 1) continue
+            if (gBoard[i][j].minesAroundCount === 0) {
+                gBoard[i][j].revealeArea = true
+                elCurrCell.innerText = EMPTY
+                console.log('1:')
+            } else {
+                gBoard[i][j].revealeArea = true
+                elCurrCell.innerText = gBoard[i][j].minesAroundCount
+                console.log('2:')
+            }
+            addClass(elCurrCell, 'revealed')
 
+        }
+    }
 }
+
 
 function onLoss() {
     revealMines()
+    clearInterval(timerInterval)
 }
 
-function onVictory() {
+function checkVictory() {
+    // לופ על כל הבורד ולמצוא את כל הפצצות (לבדוק אם אפשרי להשתמש בערך קיים) ולבדוק אם כולן עם עם מרקד שווה לטרו. ואז לבדוק באותו לופ לבדוק אם שאר התאים עם נחשפו
+    for (var i = 0; i < gBoard.length; i++) {
+        for (var j = 0; j < gBoard[i].length; j++) {
+            const currCell = gBoard[i][j]
+            if (currCell.isMine) {
+                if (currCell.isMarked !== true) return
 
+            } else if (currCell.isMine === false) {
+                if (currCell.isRevealed === false) return
+            } else {
+                console.log('error:')
+            }
+        }
+    }
+    clearInterval(timerInterval)
+    console.log('victory:')
+    alert('You Won!!😎  (temporery)')
 }
 
 
@@ -235,6 +318,20 @@ function revealMines() {
         currMine.classList.add('mine')
         currMine.innerText = MINE
     }
+}
+
+function renderMinesLives() {
+    var elMines = document.querySelector('.mines span')
+    elMines.innerText = currLevel.minesCount
+
+    var elLivesContainer = document.querySelector('.lives-container')
+    elLivesContainer.innerHTML = ''
+    for (var i = 0; i < gGame.lives; i++) {
+        const img = document.createElement('img')
+        img.src = HEARTIMG
+        elLivesContainer.appendChild(img)
+    }
+
 }
 
 function addClass(el, Class) {
