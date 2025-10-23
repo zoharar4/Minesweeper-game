@@ -200,7 +200,7 @@ function onCellClicked(elCell, i, j) {
         gGame.frsClicked = true
         firstClicked(i, j)
         if (currCell.minesAroundCount === 0) {
-            revealeArea(elCell, i, j)
+            revealArea(elCell, i, j)
         }
     }
 
@@ -257,8 +257,8 @@ function clickedMine(elCell, i, j) {   //TODO later checks if the player left li
         elMarkedCells.innerText = gGame.markedCount
     }
 }
-
-function revealeArea(elCell, iIdx, jIdx) {
+// thought: if i> idx && i< boardLength and minesAroundCount === 0 then reveale
+function revealArea(elCell, iIdx, jIdx) {
     // revealedArea = []
     for (var i = iIdx - 1; i <= iIdx + 1; i++) {
         for (var j = jIdx - 1; j <= jIdx + 1; j++) {
@@ -266,14 +266,13 @@ function revealeArea(elCell, iIdx, jIdx) {
             if (i === iIdx && j === jIdx) continue
             if (i < 0 || i > currLevel.boardLength - 1 || j < 0 || j > currLevel.boardLength - 1) continue
             if (gBoard[i][j].minesAroundCount === 0) {
-                gBoard[i][j].revealeArea = true
                 elCurrCell.innerText = EMPTY
                 console.log('1:')
             } else {
-                gBoard[i][j].revealeArea = true
                 elCurrCell.innerText = gBoard[i][j].minesAroundCount
                 console.log('2:')
             }
+            gBoard[i][j].isRevealed = true
             addClass(elCurrCell, 'revealed')
 
         }
