@@ -1,14 +1,11 @@
 var gBoard
 var minesLocation
 var timerInterval
-var revealedArea = [] // for the function  revealeArea 
-
 
 var time = 0
 
 var elCurrentTime = document.querySelector('.timer span')
 const elMarkedCells = document.querySelector('.marked-cells span')
-// var minesCount = 0
 const MINE = '💣'
 const EMPTY = ''
 const MARKED = '🚩'
@@ -18,8 +15,8 @@ var explosionSound = new Audio('sounds/explosion.mp3')
 
 const LEVELS = {
     easy: { boardLength: 4, minesCount: 2, lives: 1 },
-    medium: { boardLength: 8, minesCount: 14, lives: 2 },
-    hard: { boardLength: 12, minesCount: 32, lives: 3 },
+    medium: { boardLength: 8, minesCount: 4, lives: 2 },
+    hard: { boardLength: 12, minesCount: 12, lives: 3 },
 }
 
 var currLevel = LEVELS.easy
@@ -27,16 +24,10 @@ var currLevel = LEVELS.easy
 var gGame = {
     frsClicked: false,
     isOn: true,
-    // secsPassed: 0,
     markedCount: 0,
     lives: currLevel.lives,
-
 }
-//reset value //  start timer
-// 1.2.onInit -> 3.firstClicked 
-//    ^
-//    |
-// 2.3.resetBtn   <--reset first clicked value
+
 //----------------------------------------------------
 
 function onInit() { //1
@@ -47,9 +38,6 @@ function onInit() { //1
     elMarkedCells.innerText = 0
     gGame.lives = currLevel.lives
     gBoard = createBoard(currLevel.boardLength) //creates the board with no mines
-    // timerInterval = setInterval(getTime, 10)
-    // rndmMines()
-    // setMinesNegsCount(minesLocation, gBoard)    //updates the minesAroundCount of the cells
     renderBoard(gBoard)
     renderMinesLives()
     gGame.isOn = true
@@ -94,11 +82,6 @@ function changeLevel(difficultyStr) {
     }
 }
 
-// minesLocation = []
-// if (i === 1 && j === 1 || i === matLength - 2 && j === matLength - 2 || i === 3 && j === 1 || i === 1 && j === 4) { //temporary
-//     gBoard[i][j].isMine = true
-//     minesLocation.push({ i, j })
-// }
 
 function createBoard(matLength) { //creates matrix of objects and two mines in same location(for now).//model //
     gBoard = []
@@ -176,7 +159,7 @@ function renderBoard(board) { //puts the html code into the html file and update
     elContainer.innerHTML = strHTML
 }
 
-function addNumsClasses() {
+function addNumsClasses() {                 // for the css color
     for (var i = 0; i < gBoard.length; i++) {
         for (var j = 0; j < gBoard[i].length; j++) {
             const minesAround = gBoard[i][j].minesAroundCount
@@ -199,9 +182,9 @@ function onCellClicked(elCell, i, j) {
     if (gGame.frsClicked === false) {  //first click
         gGame.frsClicked = true
         firstClicked(i, j)
-        if (currCell.minesAroundCount === 0) {
-            revealArea(elCell, i, j)
-        }
+    }
+    if (currCell.minesAroundCount === 0) { //opens cells around
+        revealArea(elCell, i, j)
     }
 
     if (currCell.isMine === true) {                        //is a mine
@@ -249,7 +232,6 @@ function clickedMine(elCell, i, j) {   //TODO later checks if the player left li
     renderMinesLives()
     if (gGame.lives === 0) {
         onLoss()
-        gGame.isOn = false
     } else {
         gBoard[i][j].isMarked = true
         gGame.markedCount++
@@ -259,30 +241,40 @@ function clickedMine(elCell, i, j) {   //TODO later checks if the player left li
 }
 // thought: if i> idx && i< boardLength and minesAroundCount === 0 then reveale
 function revealArea(elCell, iIdx, jIdx) {
-    // revealedArea = []
+
+    if (gBoard[iIdx][jIdx].isMine) return
     for (var i = iIdx - 1; i <= iIdx + 1; i++) {
         for (var j = jIdx - 1; j <= jIdx + 1; j++) {
-            const elCurrCell = document.querySelector(`.cell-${i}-${j}`)
             if (i === iIdx && j === jIdx) continue
             if (i < 0 || i > currLevel.boardLength - 1 || j < 0 || j > currLevel.boardLength - 1) continue
-            if (gBoard[i][j].minesAroundCount === 0) {
-                elCurrCell.innerText = EMPTY
-                console.log('1:')
-            } else {
-                elCurrCell.innerText = gBoard[i][j].minesAroundCount
-                console.log('2:')
-            }
-            gBoard[i][j].isRevealed = true
-            addClass(elCurrCell, 'revealed')
+            if (gBoard[i][j].isRevealed) continue
+            console.log('1:', 1)
 
+            const elCurrCell = document.querySelector(`.cell-${i}-${j}`)
+
+            if (gBoard[i][j].minesAroundCount !== 0) {
+                elCurrCell.innerText = gBoard[i][j].minesAroundCount
+                gBoard[i][j].isRevealed = true
+                addClass(elCurrCell, 'revealed')
+
+            } else if (gBoard[i][j].minesAroundCount === 0) {
+                elCurrCell.innerText = EMPTY
+                gBoard[i][j].isRevealed = true
+                addClass(elCurrCell, 'revealed')
+                revealArea(elCell, i, j)
+            }
         }
+
     }
 }
 
 
+
 function onLoss() {
+    gGame.isOn = false
     revealMines()
     clearInterval(timerInterval)
+    setTimeout(alert('You lost!!😩  (temporery)'), 200)
 }
 
 function checkVictory() {
@@ -301,8 +293,9 @@ function checkVictory() {
         }
     }
     clearInterval(timerInterval)
+    gGame.isOn = false
     console.log('victory:')
-    alert('You Won!!😎  (temporery)')
+    setTimeout(() => { alert('You Won!!😎  (temporery)') }, 200)
 }
 
 
